@@ -23,88 +23,17 @@ from matplotlib.transforms import Bbox
 # In[2]:
 
 
-def findSameMass(mass):
-    """
-    input:
-    - mass: mass in solar mass
-    output:
-    - radius
-    """
+def run(opti,rho_cen):
     PhiInit = 1
     PsiInit = 0
-    option = 1
-    radiusMax_in = 50000
-    radiusMax_out = 10000000
-    Npoint = 50000
-    "density in MeV/fm^3"
-    rhoMin = 100
-    rhoMax = 8200
-    log_active = False
-    if 0:
-        "Log scale"
-        Npoint_rho = 50 #<- number of points
-        rho = [x*cst.eV*10**6/(cst.c**2*cst.fermi**3) for x in np.logspace(np.log10(rhoMin),np.log10(rhoMax),num=Npoint_rho)]
-    else:
-        "Linear scale"
-        rhoStep = 50 #<- step in MeV/fm^3
-        rho = [x*cst.eV*10**6/(cst.c**2*cst.fermi**3) for x in range(rhoMin,rhoMax,rhoStep)]
-    massStar_GR = np.array([])
-    massStar_ER = np.array([])
-    radiusStar_GR = np.array([])
-    radiusStar_ER = np.array([])
-    for iRho in rho:
-        rhoInit = iRho
-        tov = TOV(iRho, PsiInit, PhiInit, radiusMax_in, radiusMax_out, Npoint, option, False, log_active)
-        tov.ComputeTOV()
-        massStar_GR = np.append(massStar_GR,tov.massStar)
-        tov = TOV(iRho, PsiInit, PhiInit, radiusMax_in, radiusMax_out, Npoint, option, True, log_active)
-        tov.ComputeTOV()
-        massStar_ER = np.append(massStar_ER,tov.massStar)
-    rho = np.array(rho)/(cst.eV*10**6/(cst.c**2*cst.fermi**3))
-    # ER
-    massStar_ER = massStar_ER/(1.989*10**30)-mass
-    bool_sup_zero_ER = (massStar_ER>0)
-    ind = np.where((bool_sup_zero_ER[1:-1] == bool_sup_zero_ER[0:-2]) == False)
-    rho_ER = rho[ind]
-    sol_acc_ER = 100*massStar_ER[ind]/mass
-    if len(rho_ER)==0:
-        print('no solution')
-    else:
-        print('density in [MeV/fm^3]: ', rho_ER)
-        print('mass accuracy un %: ', sol_acc_ER)
-    # GR
-    massStar_GR = massStar_GR/(1.989*10**30)-mass
-    bool_sup_zero_GR = (massStar_GR>0)
-    ind = np.where((bool_sup_zero_GR[1:-1] == bool_sup_zero_GR[0:-2]) == False)
-    rho_GR = rho[ind]
-    sol_acc_GR = 100*massStar_GR[ind]/mass
-    if len(rho_GR)==0:
-        print('no solution')
-    else:
-        print('density in [MeV/fm^3]: ', rho_GR)
-        print('mass accuracy un %: ', sol_acc_GR)
-
-    plt.scatter(rho, massStar_ER+mass)
-    for i in range(len(rho_ER)):
-        plt.axvline(rho_ER[i])
-    plt.axhline(mass)
-    plt.show()
-
-
-# In[3]:
-
-
-def run(opti):
-    PhiInit = 1
-    PsiInit = 0
-#     option = opti
     option = opti
     radiusMax_in = 40000
     radiusMax_out = 10000000
     Npoint = 1000000
+
     log_active = True
     dilaton_active = True
-    rhoInit = 100*cst.eV*10**6/(cst.c**2*cst.fermi**3)
+    rhoInit = rho_cen*cst.eV*10**6/(cst.c**2*cst.fermi**3)
     tov = TOV(rhoInit, PsiInit, PhiInit, radiusMax_in, radiusMax_out, Npoint, option, dilaton_active, log_active)
     tov.ComputeTOV()
     # tov.Plot()
@@ -114,18 +43,13 @@ def run(opti):
     phi = tov.Phi
     phi_dot = tov.Psi
     radiusStar = tov.radiusStar
+    mass_ADM = tov.massADM / (1.989*10**30) # in solar mass
     a_dot = (-a[1:-2]+a[2:-1])/(r[2:-1]-r[1:-2])
     b_dot = (-b[1:-2]+b[2:-1])/(r[2:-1]-r[1:-2])
     f_a = -a_dot*r[1:-2]*r[1:-2]/1000
     f_b = -b_dot*r[1:-2]*r[1:-2]/1000
     f_phi = -phi_dot*r*r/1000
-    # plt.plot(r[1:-2]/1000,f_a, label='$f_a$')
-    # plt.plot(r[1:-2]/1000,f_b, label='$f_b$')
-    # plt.plot(r/1000,f_phi, label='$f_\Phi$')
-    # plt.legend()
-    # plt.xlabel('radius [km]')
-    # plt.ylabel('[km]')
-    # plt.show()
+
     print('f_a at infinity ', f_a[-1])
     print('f_b at infinity ', f_b[-1])
     print('f_phi at infinity ', f_phi[-1])
@@ -172,13 +96,13 @@ def run(opti):
         couleur = (0.929,0.694,0.125)
         nom = 'c -+'
         
-    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr)
+    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen)
 
 
-# In[4]:
+# In[3]:
 
 
-def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr):
+def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen):
     plt.plot(r*1e-3,a,label=f'a: numerical ({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,a_u,linestyle='dashed',label = f'a: {nom}',color = couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -186,8 +110,9 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.ylim([a[0],1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('a', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/a_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     a_interpol = interp1d(rho_u, a_u, fill_value="extrapolate")
@@ -201,19 +126,21 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.ylim([-1,1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('(a_num - a_ana) %', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/diffa_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/diff_a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     plt.plot(r*1e-3,b,label=f'b: numerical ({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,b_u,linestyle='dashed',label = f'b: {nom}',color = couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
     plt.xlim([0,r_lim*1e-3])
-    plt.ylim([b[0],1.2])
+    plt.ylim([b[0],max(b)+0.1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('b', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/b_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     b_interpol = interp1d(rho_u, b_u, fill_value="extrapolate")
@@ -224,11 +151,12 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.axhline(y= 0, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
     # plt.ylim([-0.01,0.01])
-    plt.ylim([-1,1])
+    plt.ylim([-5,5])
     plt.xlabel('Radius r (km)')
     plt.ylabel('(b_num - b_ana) %', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/diffb_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/diff_b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     plt.plot(r*1e-3,phi,label=f'$\\Phi$: numerical({comment})',color=(0.,0.447,0.741))
@@ -236,14 +164,15 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.axvline(x=radiusStar*1e-3, color='r')
     plt.xlim([0,r_lim*1e-3])
     if option == 1:
-        limitaY = [0.99,1.01]
+        limitaY = [phi[0],1.01]
     if option == 2:
         limitaY = [1,1.1]
     plt.ylim(limitaY)
     plt.xlabel('Radius r (km)')
     plt.ylabel('$\\Phi$', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/phi_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
@@ -257,8 +186,9 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.ylim([-1,1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('($\\Phi$_num - $\\Phi$_ana) %', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/diffphi_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/diff_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
     
     plt.plot(r*1e-3,a*b,label=f'a*b: numerical ({comment})',color=(0.,0.447,0.741))
@@ -266,11 +196,12 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.axvline(x=radiusStar*1e-3, color='r')
     plt.axhline(y= 1, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
-    plt.ylim([a[0]*b[0],1.1])
+    plt.ylim([a[0]*b[0],max(a*b)+0.1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('a * b', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/ab_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
 
     ab_interpol = interp1d(rho_u, a_u * b_u, fill_value="extrapolate")
@@ -281,28 +212,23 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.axhline(y= 0, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
     # plt.ylim([-0.01,0.01])
-    plt.ylim([-1,1])
+#     plt.ylim([-1,1])
+    plt.ylim([-5,5])
     plt.xlabel('Radius r (km)')
     plt.ylabel('a*b (numerical - analytical) %', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/diffab_{descr}.png', dpi = 200)
+    plt.savefig(f'figures/diff_ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
 
 
-# In[5]:
+# In[4]:
 
 
-option = 1
-r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr  = run(option)
-make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr)
-
-
-# In[ ]:
-
-
-option = 2
-r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr  = run(option)
-make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr)
+for i in [1,2]:
+    for k in [100,500,1000,2000,4000,8000]:
+        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen  = run(i,k)
+        make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k)
 
 
 # In[ ]:

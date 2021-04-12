@@ -116,7 +116,8 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.show()
     
     a_interpol = interp1d(rho_u, a_u, fill_value="extrapolate")
-    diff_a = a_interpol(r)-a
+    diff_a = (a_interpol(r)-a) / a 
+
 
     plt.plot(r*1e-3,diff_a*100,label=f'a (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -144,14 +145,16 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.show()
     
     b_interpol = interp1d(rho_u, b_u, fill_value="extrapolate")
-    diff_b = b_interpol(r)-b
+    diff_b = (b_interpol(r)-b) / b
+
 
     plt.plot(r*1e-3,diff_b*100,label=f'b (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
     plt.axvline(x=radiusStar*1e-3, color='r')
     plt.axhline(y= 0, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
     # plt.ylim([-0.01,0.01])
-    plt.ylim([-5,5])
+#     plt.ylim([-5,5])
+    plt.ylim([-3,3])
     plt.xlabel('Radius r (km)')
     plt.ylabel('(b_num - b_ana) %', fontsize=12)
     plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
@@ -176,7 +179,8 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.show()
     
     phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
-    diff_phi = phi_interpol(r)-phi
+    diff_phi = (phi_interpol(r)-phi) / phi
+
 
     plt.plot(r*1e-3,diff_phi*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -205,7 +209,8 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.show()
 
     ab_interpol = interp1d(rho_u, a_u * b_u, fill_value="extrapolate")
-    diff_ab = ab_interpol(r)- a * b
+    diff_ab = (ab_interpol(r)- a * b) / (a * b)
+
 
     plt.plot(r*1e-3,diff_ab*100,label=f'a*b (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
     plt.axvline(x=radiusStar*1e-3, color='r')

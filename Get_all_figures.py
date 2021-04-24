@@ -54,13 +54,25 @@ def run(opti,rho_cen):
     print('f_b at infinity ', f_b[-1])
     print('f_phi at infinity ', f_phi[-1])
     if option == 1:
-        gamma = 1/(5+4*f_a[-1]/f_phi[-1])**(1/2)
-        r_m = f_a[-1]*1000*(1+gamma**2)/(-1+5*gamma**2)
+        b_ = 1/(2*np.sqrt(3))
+        C = f_b[-1]/f_phi[-1]
+        a1 = 1
+        a2 = 4*b_*(C+1)
+        a3 = -1
+        a4 = a2*a2-4*a1*a3
+        gamma = (-a2-np.sqrt(a4))/(2*a1)
+        r_m = 1000*f_phi[-1]*(1+gamma**2)/(4*b_*gamma)
         comment = '$L_m = -\\rho$'
         descr = 'rho'
     elif option == 2:
-        gamma = 1/(-3-4*f_a[-1]/f_phi[-1])**(1/2)
-        r_m = -f_a[-1]*1000*(1+gamma**2)/(1+3*gamma**2)
+        b_ = -1/(2*np.sqrt(3))
+        C = f_b[-1]/f_phi[-1]
+        a1 = 1
+        a2 = 4*b_*(C+1)
+        a3 = -1
+        a4 = a2*a2-4*a1*a3
+        gamma = (-a2-np.sqrt(a4))/(2*a1)
+        r_m = 1000*f_phi[-1]*(1+gamma**2)/(4*b_*gamma)
         comment = '$L_m = P$'
         descr = 'P'
     else:
@@ -68,34 +80,23 @@ def run(opti,rho_cen):
     print('gamma', gamma)
     print('r_m',r_m )
     r_2 = np.linspace(r_m,r[-1],num=100000)
-    rho_m = ((r_2**2)*(1-(r_m/r_2))**((-2*gamma**2)/(1+gamma**2)))**(1/2)
-    a_m = (1-r_m/r_2)**((1-5*gamma**2)/(1+gamma**2))
-    phi_m= (1-r_m/r_2)**((4*gamma**2)/(1+gamma**2))
-    drho_dr_m = (1+r_m/r_2)**((-1*gamma**2)/(1+gamma**2))-(r_m/r_2)*((-1*gamma**2)/(1+gamma**2))*(1+r_m/r_2)**((-1*gamma**2)/(1+gamma**2)-1)
-    b_m = (1-r_m/r_2)**((-1-3*gamma**2)/(1+gamma**2))*(drho_dr_m)**(-2)
-    rho_p = ((r_2**2)*(1-(r_m/r_2))**((6*gamma**2)/(1+gamma**2)))**(1/2)
-    a_p = (1-r_m/r_2)**((1+3*gamma**2)/(1+gamma**2))
-    phi_p= (1-r_m/r_2)**((-4*gamma**2)/(1+gamma**2))
-    drho_dr_p = (1+r_m/r_2)**((3*gamma**2)/(1+gamma**2))-(r_m/r_2)*((3*gamma**2)/(1+gamma**2))*(1+r_m/r_2)**((3*gamma**2)/(1+gamma**2)-1)
-    b_p = (1-r_m/r_2)**((-1+5*gamma**2)/(1+gamma**2))*(drho_dr_p)**(-2)
+    exp_phi = -4*b_*gamma/(1+gamma**2)
+    exp_rho = (gamma**2)/(1+gamma**2)-exp_phi/2
+    exp_a = (1-gamma**2)/(1+gamma**2)-exp_phi
+    exp_b = -(1-gamma**2)/(1+gamma**2)-exp_phi
+    rho_u = r_2*(1-r_m/r_2)**exp_rho
+    a_u = (1-r_m/r_2)**exp_a
+    phi_u= (1-r_m/r_2)**exp_phi
+    drho_dr_u = (1-r_m/r_2)**exp_rho+exp_rho*(r_m/r_2)*(1-r_m/r_2)**(exp_rho-1)
+    b_u = ((1-r_m/r_2)**exp_b)*(drho_dr_u)**(-2)
     r_lim = 80000
     if option == 1:
-        rho_u = rho_m 
-        a_u = a_m
-        phi_u = phi_m
-        drho_dr_u = drho_dr_m
-        b_u = b_m
         couleur = (0.85,0.325,0.098)
         nom = 'c --'
     elif option == 2:
-        rho_u = rho_p 
-        a_u = a_p
-        phi_u = phi_p
-        drho_dr_u = drho_dr_p
-        b_u = b_p
         couleur = (0.929,0.694,0.125)
         nom = 'c -+'
-        
+
     return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen)
 
 
@@ -114,9 +115,9 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     a_interpol = interp1d(rho_u, a_u, fill_value="extrapolate")
-    diff_a = (a_interpol(r)-a) / a 
+    diff_a = (a_interpol(r)-a) / a
 
 
     plt.plot(r*1e-3,diff_a*100,label=f'a (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
@@ -131,7 +132,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/diff_a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     plt.plot(r*1e-3,b,label=f'b: numerical ({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,b_u,linestyle='dashed',label = f'b: {nom}',color = couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -143,7 +144,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     b_interpol = interp1d(rho_u, b_u, fill_value="extrapolate")
     diff_b = (b_interpol(r)-b) / b
 
@@ -161,7 +162,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/diff_b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     plt.plot(r*1e-3,phi,label=f'$\\Phi$: numerical({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,phi_u,linestyle='dashed',label= f'$\\Phi$: {nom}',color= couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -177,7 +178,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
     diff_phi = (phi_interpol(r)-phi) / phi
 
@@ -194,7 +195,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/diff_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
-    
+
     plt.plot(r*1e-3,a*b,label=f'a*b: numerical ({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,a_u*b_u,linestyle='dashed',label = f'a*b: {nom}',color = couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -226,18 +227,27 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.savefig(f'figures/diff_ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
 
-
+    plt.plot(r*1e-3,diff_a*100,label=f'$a$ (numerical({comment}) - {nom}) in %',color=(0.85,0.325,0.098))
+    plt.plot(r*1e-3,diff_b*100,label=f'$b$ (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
+    plt.plot(r*1e-3,diff_phi*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %',color=(0.929,0.694,0.125))
+    plt.axvline(x=radiusStar*1e-3, color='r')
+    plt.axhline(y= 0, color = 'gray')
+    plt.xlim([0,r_lim*1e-3])
+    plt.ylim([-5,5])
+    plt.xlabel('Radius r (km)')
+    plt.ylabel('(numerical - analytical) %', fontsize=12)
+    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
+    plt.legend()
+    plt.legend()
+    plt.savefig(f'figures/diff_a_b_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
+    plt.show()
 # In[4]:
 
 
-for i in [1,2]:
-    for k in [100,500,1000,2000,4000,8000]:
+for i in [2]:
+    for k in [500]:
         r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen  = run(i,k)
         make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k)
 
 
 # In[ ]:
-
-
-
-

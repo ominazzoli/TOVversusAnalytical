@@ -92,80 +92,53 @@ def run(opti,rho_cen):
     r_lim = 80000
     if option == 1:
         couleur = (0.85,0.325,0.098)
-        nom = 'c --'
+        nom = '$\\alpha_-$'
+        alphag = gamma
     elif option == 2:
         couleur = (0.929,0.694,0.125)
-        nom = 'c -+'
+        nom = '$\\alpha_+$'
+        alphag = - gamma
 
-    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen)
-
-
-# In[3]:
+    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,alphag)
 
 
-def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen):
-    plt.plot(r*1e-3,a,label=f'a: numerical ({comment})',color=(0.,0.447,0.741))
-    plt.plot(rho_u*1e-3,a_u,linestyle='dashed',label = f'a: {nom}',color = couleur)
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.xlim([0,r_lim*1e-3])
-    plt.ylim([a[0],1])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('a', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
+# In[10]:
+
+
+def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,gamma):
+
 
     a_interpol = interp1d(rho_u, a_u, fill_value="extrapolate")
     diff_a = (a_interpol(r)-a) / a
 
 
-    plt.plot(r*1e-3,diff_a*100,label=f'a (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.axhline(y= 0, color = 'gray')
-    plt.xlim([0,r_lim*1e-3])
-    # plt.ylim([-0.01,0.01])
-    plt.ylim([-1,1])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('(a_num - a_ana) %', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/diff_a_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
-
-    plt.plot(r*1e-3,b,label=f'b: numerical ({comment})',color=(0.,0.447,0.741))
-    plt.plot(rho_u*1e-3,b_u,linestyle='dashed',label = f'b: {nom}',color = couleur)
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.xlim([0,r_lim*1e-3])
-    plt.ylim([b[0],max(b)+0.1])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('b', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
-
     b_interpol = interp1d(rho_u, b_u, fill_value="extrapolate")
     diff_b = (b_interpol(r)-b) / b
 
+    ab_interpol = interp1d(rho_u, a_u * b_u, fill_value="extrapolate")
+    diff_ab = (ab_interpol(r)- a * b) / (a * b)
 
-    plt.plot(r*1e-3,diff_b*100,label=f'b (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.axhline(y= 0, color = 'gray')
+    phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
+    diff_phi = (phi_interpol(r)-phi) / phi
+
+
+    plt.plot(r*1e-3,a*b,label=f'a*b: numerical ({comment})',color=(0.,0.447,0.741))
+    plt.plot(rho_u*1e-3,a_u*b_u,linestyle='dashed',label = f'a*b: {nom}',color = couleur)
+    plt.axvline(x=radiusStar*1e-3, color='black')
+    plt.axhline(y= 1, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
-    # plt.ylim([-0.01,0.01])
-#     plt.ylim([-5,5])
-    plt.ylim([-3,3])
+    plt.ylim([a[0]*b[0],max(a*b)+0.1])
     plt.xlabel('Radius r (km)')
-    plt.ylabel('(b_num - b_ana) %', fontsize=12)
+    plt.ylabel('a * b', fontsize=12)
     plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
-    plt.savefig(f'figures/diff_b_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
+    plt.savefig(f'figures/ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
+
 
     plt.plot(r*1e-3,phi,label=f'$\\Phi$: numerical({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,phi_u,linestyle='dashed',label= f'$\\Phi$: {nom}',color= couleur)
-    plt.axvline(x=radiusStar*1e-3, color='r')
+    plt.axvline(x=radiusStar*1e-3, color='black')
     plt.xlim([0,r_lim*1e-3])
     if option == 1:
         limitaY = [phi[0],1.01]
@@ -179,75 +152,126 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.savefig(f'figures/phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
 
-    phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
-    diff_phi = (phi_interpol(r)-phi) / phi
-
-
-    plt.plot(r*1e-3,diff_phi*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
-    plt.axvline(x=radiusStar*1e-3, color='r')
+    
+    diff_a_wo_offset = diff_a - diff_a[-1]  
+    diff_b_wo_offset = diff_b - diff_b[-1]  
+    diff_phi_wo_offset = diff_phi - diff_phi[-1]
+    
+    plt.plot(r*1e-3,diff_a_wo_offset*100,label=f'$a$ (numerical({comment}) - {nom}) in %\n(Offset = {diff_a[-1]*100:.2f}%)',color=(0.85,0.325,0.098))
+#     plt.plot(r*1e-3,diff_b_wo_offset*100,label=f'$b$ (numerical({comment}) - {nom}) in %\n(Offset = {diff_b[-1]*100:.2f}\%)',color=(0.,0.447,0.741))
+    plt.plot(r*1e-3,diff_b*100,label=f'$b$ (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741), linestyle='dashed')
+#     plt.plot(r*1e-3,diff_phi*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %',color=(0.929,0.694,0.125), linestyle='dashdot')
+    plt.plot(r*1e-3,diff_phi_wo_offset*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %\n(Offset = {diff_phi[-1]*100:.2f}%)',color=(0.929,0.694,0.125), linestyle='dashdot')
+    plt.axvline(x=radiusStar*1e-3, color='black')
     plt.axhline(y= 0, color = 'gray')
     plt.xlim([0,r_lim*1e-3])
-    # plt.ylim([-0.01,0.01])
-    plt.ylim([-1,1])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('($\\Phi$_num - $\\Phi$_ana) %', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/diff_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
-
-    plt.plot(r*1e-3,a*b,label=f'a*b: numerical ({comment})',color=(0.,0.447,0.741))
-    plt.plot(rho_u*1e-3,a_u*b_u,linestyle='dashed',label = f'a*b: {nom}',color = couleur)
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.axhline(y= 1, color = 'gray')
-    plt.xlim([0,r_lim*1e-3])
-    plt.ylim([a[0]*b[0],max(a*b)+0.1])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('a * b', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
-
-    ab_interpol = interp1d(rho_u, a_u * b_u, fill_value="extrapolate")
-    diff_ab = (ab_interpol(r)- a * b) / (a * b)
-
-
-    plt.plot(r*1e-3,diff_ab*100,label=f'a*b (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.axhline(y= 0, color = 'gray')
-    plt.xlim([0,r_lim*1e-3])
-    # plt.ylim([-0.01,0.01])
-#     plt.ylim([-1,1])
-    plt.ylim([-5,5])
-    plt.xlabel('Radius r (km)')
-    plt.ylabel('a*b (numerical - analytical) %', fontsize=12)
-    plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
-    plt.legend()
-    plt.savefig(f'figures/diff_ab_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
-    plt.show()
-
-    plt.plot(r*1e-3,diff_a*100,label=f'$a$ (numerical({comment}) - {nom}) in %',color=(0.85,0.325,0.098))
-    plt.plot(r*1e-3,diff_b*100,label=f'$b$ (numerical({comment}) - {nom}) in %',color=(0.,0.447,0.741))
-    plt.plot(r*1e-3,diff_phi*100,label=f'$\\Phi$ (numerical({comment}) - {nom}) in %',color=(0.929,0.694,0.125))
-    plt.axvline(x=radiusStar*1e-3, color='r')
-    plt.axhline(y= 0, color = 'gray')
-    plt.xlim([0,r_lim*1e-3])
-    plt.ylim([-5,5])
+    plt.ylim([-0.1,0.1])
     plt.xlabel('Radius r (km)')
     plt.ylabel('(numerical - analytical) %', fontsize=12)
     plt.title(f'Density = {rho_cen} $MeV/fm^3$, mass (ADM) = {mass_ADM:.1f} solar mass', loc='center')
     plt.legend()
     plt.legend()
-    plt.savefig(f'figures/diff_a_b_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
+    plt.savefig(f'figures/diff_awo_b_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200,bbox_inches='tight')
     plt.show()
-# In[4]:
 
 
-for i in [2]:
-    for k in [500]:
-        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen  = run(i,k)
-        make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k)
+# In[11]:
+
+
+for i in [1,2]:
+#     for k in [100,500,1000,2000,4000,8000]:
+    for k in [1000]:
+        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen, gamma  = run(i,k)
+        make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k,gamma)
+
+
+# In[5]:
+
+
+def diff_at_radius(density,opti):
+
+    central_density = density
+    option = opti
+
+    r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,gamma  = run(option,central_density)
+
+    ab = a * b
+
+    a_interpol = interp1d(rho_u, a_u, fill_value="extrapolate")
+    b_interpol = interp1d(rho_u, b_u, fill_value="extrapolate")
+    ab_interpol = interp1d(rho_u, a_u * b_u, fill_value="extrapolate")
+
+    phi_interpol = interp1d(rho_u, phi_u, fill_value="extrapolate")
+
+
+
+    diff_a = (a_interpol(r)*a[-1]/a_interpol(r)[-1]-a) / a 
+    diff_b = (b_interpol(r)*b[-1]/b_interpol(r)[-1]-b) / b
+    diff_ab = (ab_interpol(r)*ab[-1]/ab_interpol(r)[-1]-ab) / ab
+
+    diff_phi = (phi_interpol(r)*phi[-1]/phi_interpol(r)[-1]-phi) / phi 
+
+    i_radius = min(range(len(r)), key=lambda i: abs(r[i]-radiusStar))
+
+    R_diff_a = diff_a[i_radius]
+    R_diff_b = diff_b[i_radius]
+    R_diff_ab = diff_ab[i_radius]
+
+    R_diff_phi = diff_phi[i_radius]
+    
+    return R_diff_a,R_diff_b, R_diff_ab, R_diff_phi
+
+
+# In[14]:
+
+
+def make_gamma_beta_plots(n,opti):
+    nspace = n
+    option = opti
+    
+    if opti == 1:
+        descr = 'rho'
+        comment = '$L_m = - \rho$'
+    elif opti == 2:
+        descr = 'P'
+        comment ='$L_m = P$'
+    else:
+        print('not a valid option, try 1 or 2')
+    
+    den_space = np.linspace(100,8000,num=n)
+    
+    gamma_vec = np.array([])
+    beta_vec = np.array([])
+    
+    for den in den_space:
+        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,gamma  = run(option,den)
+        gamma_vec = np.append(gamma_vec,gamma)
+        beta_vec = np.append(beta_vec,(1-gamma**2)/(1+gamma**2))
+    
+    
+    fig,ax = plt.subplots()
+    plt.xlabel('Cetral density ($MeV/fm^3$)')
+    ax.plot(den_space,gamma_vec, label=f'$\\alpha$ ({comment})', color = 'tab:blue')
+    ax.set_ylabel('$\\alpha$', fontsize=12, color = 'tab:blue')
+    
+    ax2=ax.twinx()
+    ax2.plot(den_space,beta_vec, label=f'$\\beta$ ({comment})', color = 'tab:green', linestyle = 'dashed')
+    ax2.set_ylabel('$\\beta$', fontsize=12, color = 'tab:green')
+    
+    fig.legend(loc=0, bbox_to_anchor=(0.9, 0.7))
+    plt.savefig(f'figures/alpha_beta_{nspace}_{descr}.png', dpi = 200,bbox_inches='tight')
+    plt.show()
 
 
 # In[ ]:
+
+
+make_gamma_beta_plots(50,1)
+make_gamma_beta_plots(50,2)
+
+
+# In[ ]:
+
+
+
+

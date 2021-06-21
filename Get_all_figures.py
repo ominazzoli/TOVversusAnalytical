@@ -102,7 +102,7 @@ def run(opti,rho_cen):
     return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,alphag)
 
 
-# In[10]:
+# In[3]:
 
 
 def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen,gamma):
@@ -175,7 +175,7 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.show()
 
 
-# In[11]:
+# In[4]:
 
 
 for i in [1,2]:
@@ -222,7 +222,7 @@ def diff_at_radius(density,opti):
     return R_diff_a,R_diff_b, R_diff_ab, R_diff_phi
 
 
-# In[14]:
+# In[6]:
 
 
 def make_gamma_beta_plots(n,opti):
@@ -263,11 +263,200 @@ def make_gamma_beta_plots(n,opti):
     plt.show()
 
 
-# In[ ]:
+# In[7]:
 
 
 make_gamma_beta_plots(50,1)
 make_gamma_beta_plots(50,2)
+
+
+# In[8]:
+
+
+# Geodesics integration
+
+
+# In[9]:
+
+
+from scipy.integrate import solve_ivp
+
+
+# In[16]:
+
+
+# Definitions of the various functions used in the geodesics integration
+
+def rho_2(r, m, beta): # rho^2
+    return r**2*(1-2*m/(beta*r))**(1-beta)
+
+def lambda_2(r, m, beta): #lambda^2
+    return (1-2*m/(beta*r))**beta
+
+def V_eff(r, m, beta, epsilon, L):
+    return lambda_2(r, m, beta)*(epsilon+L**2/rho_2(r, m, beta))
+
+def dr_dtau(r, E, m, beta, epsilon, L):
+    return np.sqrt(E-V_eff(r, m, beta, epsilon, L))
+
+def f_r(u): # u := dr/dtau
+    return u
+
+def f_u(r, u, m, beta, epsilon, L): # du/dtau
+    F = 1-2*m/(beta*r)
+    A = epsilon*m*F**(beta-1)
+    B = ((L**2)/(beta*r**2))*(2*beta*m-beta*r+m)*F**(2*beta-2)
+    return -(1/r**2)*(A+B)
+
+def f_w(r, w, m, beta, epsilon, L, E): #dw/dt
+    F = 1-2*m/(beta*r)
+    return 2*m / F * (w / r)**2 + F**(2*beta) / E**2 * f_u(r, w, m, beta, epsilon, L)
+
+
+def f_psi(r, m, beta, L): # dpsi/dtau
+    return (L/r**2)*(1-2*m/(beta*r))**(beta-1)
+
+def f_psi_w(r, m, beta, L, E): # dpsi/dt
+    F = 1-2*m/(beta*r)
+    dtau_dt = F**(beta) / E
+    return f_psi(r, m, beta, L) * dtau_dt
+
+# def dy_dtau(x, y, E, m, beta, epsilon, L):
+#     r, u, psi = y
+#     return [-f_r(u), -f_u(r, u, m, beta, epsilon, L), -f_psi(r, m, beta, L)]
+
+def dy_dt(x, y, E, m, beta, epsilon, L):
+    r, w, psi = y
+    return [-f_r(w), -f_w(r, w, m, beta, epsilon, L, E), -f_psi_w(r, m, beta, L,E)]
+
+
+# In[17]:
+
+
+# Geodesics integration
+
+def hit_singularity(t,r,m,beta): # Function to test if the geodesics hits the singularity
+    return r[0] - 2 * m / abs(beta) - 0.5 # Ideally, should be r[0] - 2 * m / beta, but we added a safety gap of 0.5 for numerical purpose
+
+
+def compute_geo_t(L, E, m, beta, epsilon, y0, tau_min, tau_max):
+    tau = np.linspace(tau_min, tau_max, 500000)
+    hit_event = lambda tau,x:hit_singularity(tau,x,m,beta)
+    hit_event.terminal = True # Stop the numerical integration if close to singularity
+    sol = solve_ivp(fun=lambda tau, y:dy_dt(tau, y, E, m, beta, epsilon, L), t_span=[tau_min, tau_max], y0=y0, method='BDF',events=hit_event, t_eval=tau)
+    r = sol.y[0]
+    psi = sol.y[2]
+    x = r*np.cos(psi)
+    y = r*np.sin(psi)
+    return x, y
+
+
+# In[18]:
+
+
+def plot_one_geodesic_t(E,b,beta):
+    #input
+#     m = 2*abs(beta)/2 #<- mass
+    m = 1  # Far away, same geodesics in both cases with this def
+    tau_max = 10000 #<- affine parameter max bound
+    tau_min = 0 #<- affine parameter min bound
+    r0 = 84 #<- initial radius r(tau_min)
+    epsilon = 1 #<- 0 massless/ 1 massive
+    lim = 1.2*r0
+    rs_ER = 2*m/abs(beta)
+    rs = 2*m 
+
+    L = E*b
+
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'box')
+
+    circle_s = plt.Circle((0,0),rs,color='k',fill=False)
+    circle_s_ER = plt.Circle((0,0),rs_ER,color='grey',fill=False)
+
+    ax.add_artist(circle_s)
+    ax.add_artist(circle_s_ER)
+    
+    F = 1-2*m/(beta*r0)
+    dtau_dt = F**(beta) / E
+
+    y0 = [r0, dr_dtau(r0, E, m, beta, epsilon, L) * dtau_dt, -b/r0 * dtau_dt]
+    x, y = compute_geo_t(L, E, m, beta, epsilon, y0, tau_min, tau_max)
+    
+    plt.xlim([-lim,lim])
+    plt.ylim([-lim,lim])
+    
+    plt.plot(x,y,color=(0.,0.447,0.741),label=f'ER (beta={beta})')
+    x, y = compute_geo_t(L, E, m, 1, epsilon, y0, tau_min, tau_max)
+    plt.plot(x,y,color=(0.85,0.325,0.098),label='GR',linestyle=':')
+    plt.xlabel(r'$x=r\cos\psi$ (c=G=1)')
+    plt.ylabel(r'$y=r\sin\psi$ (c=G=1)')
+    plt.legend(loc=3)
+    plt.savefig(f'figures/timelike_orbits_{E}_{b}_{beta}_t.png', dpi = 200,bbox_inches='tight')
+    plt.show()
+
+
+# In[19]:
+
+
+def plot_multiple_lightray_t(beta):
+    # plot light deformation -------------------------------------------------------
+    #input
+    E = 1 # with this convention L=b
+    m = 1  # Far away, same geodesics in both cases with this def
+    tau_max = 10000 #<- affine parameter max bound
+    tau_min = 0 #<- affine parameter min bound
+    r0 = 200 #<- initial radius r(tau_min)
+    
+    F = 1-2*m/(beta*r0)
+    
+    epsilon = 0 #<- 0 massless/ 1 massive
+    rs = 2 * m
+    rs_ER = 2*m/abs(beta)
+    figure, axes = plt.subplots()
+    axes.set_aspect(1)
+    lim = 50
+    axes.set_xlim([-lim,lim])
+    axes.set_ylim([-lim,lim])
+    circle_s = plt.Circle((0,0),rs,color='k',fill=False,label='Schwarzschild radius')
+    circle_s_ER = plt.Circle((0,0),rs_ER,color='grey',fill=False, label='Naked singularity')
+    axes.add_artist(circle_s)
+    axes.add_artist(circle_s_ER)
+    
+    dtau_dt = F**(beta) / E
+    
+    for L in np.arange(10,0.01,-0.5):
+        
+        y0 = [r0, dr_dtau(r0, E, m, beta, epsilon, L) * dtau_dt, -L/r0 * dtau_dt]
+        x, y = compute_geo_t(L, E, m, beta, epsilon, y0, tau_min, tau_max)
+        r = np.sqrt(x**2+y**2)
+        
+        y0_GR = [r0, dr_dtau(r0, E, m, 1, epsilon, L), -L/r0]
+        x_GR, y_GR = compute_geo_t(L, E, m, 1, epsilon, y0, tau_min, tau_max)
+        r_GR = np.sqrt(x_GR**2+y_GR**2)
+
+
+        axes.plot(x,y,color=(0.,0.447,0.741), label = f'ER (beta={beta})')
+        axes.plot(x_GR,y_GR,color=(0.85,0.325,0.098),linestyle=':', label = 'GR')
+    handles, labels = axes.get_legend_handles_labels()
+    axes.legend([handles[0],handles[1]], [labels[0],labels[1]], loc = 3)
+    plt.xlabel(r'$x=r\cos\psi$ (c=G=1)')
+    plt.ylabel(r'$y=r\sin\psi$ (c=G=1)')
+    plt.savefig(f'figures/null_orbits_{beta}_t.png', dpi = 200,bbox_inches='tight')
+    plt.show()
+
+
+# In[20]:
+
+
+plot_multiple_lightray_t(0.88)
+
+
+# In[21]:
+
+
+plot_one_geodesic_t(0.98,4.5/0.98,0.88)
 
 
 # In[ ]:
